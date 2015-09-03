@@ -133,10 +133,24 @@ class test_more_ui(SherpaTestCase):
     def setUp(self):
         self._old_logger_level = logger.getEffectiveLevel()
         logger.setLevel(logging.ERROR)
-        self.img = self.make_path('img.fits')
-        self.pha = self.make_path('threads/simultaneous/pi2286.fits')
-        self.rmf = self.make_path('threads/simultaneous/rmf2286.fits')
-        self.pha3c273 = self.make_path('ciao4.3/pha_intro/3c273.pi')
+        self.img = self.datadir + '/img.fits'
+        self.pha = self.datadir + '/threads/simultaneous/pi2286.fits'
+        self.rmf = self.datadir + '/threads/simultaneous/rmf2286.fits'
+        self.pha3c273 = self.datadir + '/ciao4.3/pha_intro/3c273.pi'
+
+        #note: these files were loaded and grouped with
+        # load_pha(filename, use_errors=False)
+        self.pha3c273_group_cts = self.datadir + '/threads/pha_regroup/3c273_group_counts30.fits'
+        self.pha3c273_group_bins = self.datadir + '/threads/pha_regroup/3c273_group_bins20.fits'
+        self.pha3c273_group_adapt = self.datadir + '/threads/pha_regroup/3c273_group_adapt22.fits'
+        self.pha3c273_group_width = self.datadir + '/threads/pha_regroup/3c273_group_width16.fits'
+
+        #note: these files were loaded and grouped with
+        # load_pha(filename, use_errors=True)
+        self.pha3c273_group_snr = self.datadir + '/threads/pha_regroup/3c273_group_snr5.fits'
+        self.pha3c273_group_adapt_snr = self.datadir + '/threads/pha_regroup/3c273_group_adapt_snr5.fits'
+
+        logger.setLevel(logging.ERROR)
 
     def tearDown(self):
         logger.setLevel(self._old_logger_level)
@@ -168,6 +182,68 @@ class test_more_ui(SherpaTestCase):
         ui.notice_id('3c273', 0.3, 2)
         ui.group_counts('3c273', 30)
         ui.group_counts('3c273', 15)
+
+    # follows test in userdocs sherpa/threads/pha_group/index.html#regroup
+    @unittest.skipIf(not has_fits_support(), "need pycrates, pyfits or astropy.io.fits")
+    @unittest.skipIf(test_data_missing(), "required test data missing")
+    def test_group_counts(self):
+        ui.load_pha(1, self.pha3c273)
+        ui.group_counts(1, 30)
+        ui.load_pha(2, self.pha3c273)
+        ui.load_grouping(2, self.pha3c273_group_cts)
+        for i, bin in enumerate(ui.get_grouping(1)):
+            self.assertEqual(bin, ui.get_grouping(2)[i])
+
+    @unittest.skipIf(not has_fits_support(), "need pycrates, pyfits or astropy.io.fits")
+    @unittest.skipIf(test_data_missing(), "required test data missing")
+    def test_group_bins(self):
+        ui.load_pha(1, self.pha3c273)
+        ui.group_bins(1, 20)
+        ui.load_pha(2, self.pha3c273)
+        ui.load_grouping(2, self.pha3c273_group_bins)
+        for i, bin in enumerate(ui.get_grouping(1)):
+            self.assertEquals(bin, ui.get_grouping(2)[i])
+
+    @unittest.skipIf(not has_fits_support(), "need pycrates, pyfits or astropy.io.fits")
+    @unittest.skipIf(test_data_missing(), "required test data missing")
+    def test_group_snr(self):
+        ui.load_pha(1, self.pha3c273)
+        ui.group_snr(1, 5)
+        ui.load_pha(2, self.pha3c273)
+        ui.load_grouping(2, self.pha3c273_group_snr)
+        for i, bin in enumerate(ui.get_grouping(1)):
+            self.assertEquals(bin, ui.get_grouping(2)[i])
+
+    @unittest.skipIf(not has_fits_support(), "need pycrates, pyfits or astropy.io.fits")
+    @unittest.skipIf(test_data_missing(), "required test data missing")
+    def test_group_adapt(self):
+        ui.load_pha(1, self.pha3c273)
+        ui.group_adapt(1, 22)
+        ui.load_pha(2, self.pha3c273)
+        ui.load_grouping(2, self.pha3c273_group_adapt)
+        for i, bin in enumerate(ui.get_grouping(1)):
+            self.assertEquals(bin, ui.get_grouping(2)[i])
+
+    @unittest.skipIf(not has_fits_support(), "need pycrates, pyfits or astropy.io.fits")
+    @unittest.skipIf(test_data_missing(), "required test data missing")
+    def test_group_width(self):
+        ui.load_pha(1, self.pha3c273)
+        ui.group_width(1, 16)
+        ui.load_pha(2, self.pha3c273)
+        ui.load_grouping(2, self.pha3c273_group_width)
+        for i, bin in enumerate(ui.get_grouping(1)):
+            self.assertEquals(bin, ui.get_grouping(2)[i])
+
+    @unittest.skipIf(not has_fits_support(), "need pycrates, pyfits or astropy.io.fits")
+    @unittest.skipIf(test_data_missing(), "required test data missing")
+    def test_group_adapt_snr(self):
+        ui.load_pha(1, self.pha3c273)
+        ui.group_adapt_snr(1, 5)
+        ui.load_pha(2, self.pha3c273)
+        ui.load_grouping(2, self.pha3c273_group_adapt_snr)
+        for i, bin in enumerate(ui.get_grouping(1)):
+            self.assertEquals(bin, ui.get_grouping(2)[i])
+
 
 class test_image_12578(SherpaTestCase):
     @unittest.skipIf(test_data_missing(), "required test data missing")
