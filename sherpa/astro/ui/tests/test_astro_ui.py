@@ -138,18 +138,6 @@ class test_more_ui(SherpaTestCase):
         self.rmf = self.datadir + '/threads/simultaneous/rmf2286.fits'
         self.pha3c273 = self.datadir + '/ciao4.3/pha_intro/3c273.pi'
 
-        #note: these files were loaded and grouped with
-        # load_pha(filename, use_errors=False)
-        self.pha3c273_group_cts = self.datadir + '/threads/pha_regroup/3c273_group_counts30.fits'
-        self.pha3c273_group_bins = self.datadir + '/threads/pha_regroup/3c273_group_bins20.fits'
-        self.pha3c273_group_adapt = self.datadir + '/threads/pha_regroup/3c273_group_adapt22.fits'
-        self.pha3c273_group_width = self.datadir + '/threads/pha_regroup/3c273_group_width16.fits'
-
-        #note: these files were loaded and grouped with
-        # load_pha(filename, use_errors=True)
-        self.pha3c273_group_snr = self.datadir + '/threads/pha_regroup/3c273_group_snr5.fits'
-        self.pha3c273_group_adapt_snr = self.datadir + '/threads/pha_regroup/3c273_group_adapt_snr5.fits'
-
         logger.setLevel(logging.ERROR)
 
     def tearDown(self):
@@ -182,6 +170,67 @@ class test_more_ui(SherpaTestCase):
         ui.notice_id('3c273', 0.3, 2)
         ui.group_counts('3c273', 30)
         ui.group_counts('3c273', 15)
+
+
+class test_grouping(SherpaTestCase):
+
+    def setUp(self):
+        self.pha3c273 = self.datadir + '/ciao4.3/pha_intro/3c273.pi'
+        # note: these files were loaded with
+        # load_pha(filename, use_errors=False) and grouped according to
+        # their filename
+        self.pha3c273_group_cts = self.datadir + '/threads/pha_regroup/3c273_group_counts30.fits'
+        self.pha3c273_group_bins = self.datadir + '/threads/pha_regroup/3c273_group_bins20.fits'
+        self.pha3c273_group_adapt = self.datadir + '/threads/pha_regroup/3c273_group_adapt22.fits'
+        self.pha3c273_group_width = self.datadir + '/threads/pha_regroup/3c273_group_width16.fits'
+
+        # note: these files were loaded with
+        # load_pha(filename, use_errors=True)
+        self.pha3c273_group_snr = self.datadir + '/threads/pha_regroup/3c273_group_snr5.fits'
+        self.pha3c273_group_adapt_snr = self.datadir + '/threads/pha_regroup/3c273_group_adapt_snr5.fits'
+
+    # bug 149
+    @unittest.skipIf(not has_fits_support(), "need pycrates, pyfits or astropy.io.fits")
+    @unittest.skipIf(test_data_missing(), "required test data missing")
+    def test_grouping_simple(self):
+
+        x = numpy.arange(start=1, stop=161, step=1)
+        y = numpy.ones(x.size)
+        ui.load_arrays(0, x, y, ui.DataPHA)
+        ui.group_counts(0,16)
+
+        # control arrays
+        newx = numpy.arange(start=1, stop=161, step=16)
+        newy = numpy.zeros(newx.size)+16
+
+        # test that the data is grouped correctly
+        numpy.testing.assert_array_equal(ui.get_data(0).to_fit()[0], newy)
+
+        # now load a real dataset to test
+        # The last bin should be non-zero, but less than 16, with
+        # grouping quality=2 since the last group has count < num.
+        ui.load_pha(1, self.pha3c273)
+        ui.ungroup(1)
+        ui.group_counts(1, 16)
+
+        newy = [17.0, 16.0, 17.0, 16.0, 18.0, 21.0, 17.0, 23.0, 18.0, 21.0,
+                22.0, 21.0, 19.0, 21.0, 17.0, 17.0, 17.0, 17.0, 21.0, 17.0,
+                20.0, 17.0, 18.0, 17.0, 18.0, 17.0, 16.0, 16.0, 17.0, 17.0,
+                17.0, 16.0, 16.0, 17.0, 17.0, 16.0, 17.0, 16.0, 17.0, 16.0,
+                16.0, 9.0]
+
+        # check that the bin qualities are correct
+        quality = numpy.zeros(1024)
+        quality[957:] = 2
+        numpy.testing.assert_array_equal(ui.get_data(1).quality, quality)
+
+        # before ignoring the bad data
+        numpy.testing.assert_array_equal(ui.get_data(1).to_fit()[0], newy)
+
+        # ignore bad data (with group quality=2) should remove the last bin
+        # with value 9
+        ui.ignore_bad(1)
+        numpy.testing.assert_array_equal(ui.get_data(1).to_fit()[0], newy[:-1])
 
     # follows test in userdocs sherpa/threads/pha_group/index.html#regroup
     @unittest.skipIf(not has_fits_support(), "need pycrates, pyfits or astropy.io.fits")
